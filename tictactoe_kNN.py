@@ -33,14 +33,13 @@ def check_win(board, player):
 
 # Extend training data
 X_train = [
-    # Add your comprehensive training data here
+    # Add training data here
     [1, 0, 0, 0, 0, 0, 0, 0, 0],
     [1, 1, 0, 0, 0, 0, 0, 0, 0],
     [1, 1, 0, -1, 0, 0, 0, 0, 0],
     [1, 1, 0, -1, 0, 0, 0, 0, -1],
     [1, 1, 0, -1, 1, 0, 0, 0, -1],
     [1, 1, 0, -1, 1, 0, 0, -1, -1],
-    # Add more samples as needed
 ]
 y_train = [
     4,
@@ -49,7 +48,6 @@ y_train = [
     2,
     6,
     8,
-    # Add corresponding best move indices
 ]
 
 # Train the kNN model
@@ -66,7 +64,7 @@ def predict_best_move(board, model):
 def get_user_move():
     while True:
         try:
-            row, col = map(int, input("Enter your move (row and column): ").split())
+            row, col = map(int, input("Enter your move (row and column e.g. 0 0): ").split())
             if 0 <= row < 3 and 0 <= col < 3:
                 return row, col
             else:
