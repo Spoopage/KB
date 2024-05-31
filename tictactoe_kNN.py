@@ -31,9 +31,8 @@ def check_win(board, player):
             np.all(np.diag(board) == player) or
             np.all(np.diag(np.fliplr(board)) == player))
 
-# Extend training data
+# Training data
 X_train = [
-    # Add training data here
     [1, 0, 0, 0, 0, 0, 0, 0, 0],
     [1, 1, 0, 0, 0, 0, 0, 0, 0],
     [1, 1, 0, -1, 0, 0, 0, 0, 0],
@@ -41,6 +40,8 @@ X_train = [
     [1, 1, 0, -1, 1, 0, 0, 0, -1],
     [1, 1, 0, -1, 1, 0, 0, -1, -1],
 ]
+
+# Best move indices
 y_train = [
     4,
     2,
