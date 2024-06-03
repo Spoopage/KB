@@ -1,100 +1,107 @@
 import numpy as np
-from collections import Counter
-from scipy.spatial import distance
+from sklearn.neighbors import KNeighborsClassifier
 
-# Convert board state to a numerical format
-def board_to_numeric(board):
-    mapping = {'': 0, 'X': 1, 'O': 2}
-    return [mapping[cell] for cell in board]
+# Initialize the game board
+def create_board():
+    return np.zeros((3, 3), dtype=int)
 
-# Example dataset: (board state, next move)
-dataset = [
-    (['X', 'O', 'X', 'O', 'X', 'O', '', '', ''], 6),
-    (['O', 'X', 'O', 'X', 'O', 'X', '', '', ''], 6),
-    (['X', 'X', 'O', 'O', 'X', '', 'O', '', ''], 5),
-    (['X', 'O', 'X', 'O', 'X', 'O', 'X', '', 'O'], 7),
-    # Add more examples for a comprehensive dataset
+# Display the game board
+def display_board(board):
+    symbols = {1: 'X', -1: 'O', 0: ' '}
+    for row in board:
+        print(" | ".join([symbols[cell] for cell in row]))
+        print("-" * 5)
+
+# Check if a move is valid
+def is_valid_move(board, row, col):
+    return 0 <= row < 3 and 0 <= col < 3 and board[row, col] == 0
+
+# Place a move on the board
+def make_move(board, row, col, player):
+    if is_valid_move(board, row, col):
+        board[row, col] = player
+        return True
+    return False
+
+# Check for a win
+def check_win(board, player):
+    # Check rows, columns, and diagonals
+    return (np.any(np.all(board == player, axis=0)) or
+            np.any(np.all(board == player, axis=1)) or
+            np.all(np.diag(board) == player) or
+            np.all(np.diag(np.fliplr(board)) == player))
+
+# Training data
+X_train = [
+    [1, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 1, 0, 0, 0, 0, 0, 0, 0],
+    [1, 1, 0, -1, 0, 0, 0, 0, 0],
+    [1, 1, 0, -1, 0, 0, 0, 0, -1],
+    [1, 1, 0, -1, 1, 0, 0, 0, -1],
+    [1, 1, 0, -1, 1, 0, 0, -1, -1],
 ]
 
-# Convert dataset to numerical format
-numeric_dataset = [(board_to_numeric(data[0]), data[1]) for data in dataset]
+# Best move indices
+y_train = [
+    4,
+    2,
+    2,
+    2,
+    6,
+    8,
+]
 
-def knn_predict(board, dataset, k=3):
-    numeric_board = board_to_numeric(board)
-    # Calculate the distance between the input board and all boards in the dataset
-    dists = sorted([(distance.euclidean(numeric_board, data[0]), data[1]) for data in dataset], key=lambda x: x[0])
-    
-    # Ensure we have at least k neighbors
-    if len(dists) < k:
-        k = len(dists)
-    
-    nearest_neighbors = [move for _, move in dists[:k]]
-    
-    # Filter out moves that are not valid (i.e., those that target already occupied cells)
-    valid_moves = [move for move in nearest_neighbors if board[move] == '']
-    
-    if not valid_moves:
-        raise ValueError("No valid moves available for AI.")
-    
-    # Return the most common move among the valid nearest neighbors
-    return Counter(valid_moves).most_common(1)[0][0]
+# Train the kNN model
+knn = KNeighborsClassifier(n_neighbors=1)
+knn.fit(X_train, y_train)
 
-def print_board(board):
-    for i in range(0, 9, 3):
-        print(board[i:i+3])
+# Function to predict the best move using kNN
+def predict_best_move(board, model):
+    board_flat = board.flatten().reshape(1, -1)
+    best_move_index = model.predict(board_flat)[0]
+    return divmod(best_move_index, 3)
 
-def check_winner(board):
-    win_conditions = [
-        [0, 1, 2], [3, 4, 5], [6, 7, 8],  # Rows
-        [0, 3, 6], [1, 4, 7], [2, 5, 8],  # Columns
-        [0, 4, 8], [2, 4, 6]              # Diagonals
-    ]
-    for condition in win_conditions:
-        if board[condition[0]] == board[condition[1]] == board[condition[2]] != '':
-            return board[condition[0]]
-    return None
-
-def is_board_full(board):
-    return '' not in board
-
-def play_game():
-    board = [''] * 9
-    current_player = 'X'
-    
+# Get user move with error handling
+def get_user_move():
     while True:
-        print_board(board)
-        
-        if current_player == 'X':
-            try:
-                move = int(input("Enter your move (0-8): "))
-                if move < 0 or move > 8:
-                    raise ValueError
-            except ValueError:
-                print("Invalid input. Please enter a number between 0 and 8.")
-                continue
-        else:
-            try:
-                move = knn_predict(board, numeric_dataset)
-                print(f"AI chose move {move}")
-            except ValueError as e:
-                print(e)
-                break
-        
-        if board[move] == '':
-            board[move] = current_player
-            winner = check_winner(board)
-            
-            if winner:
-                print_board(board)
-                print(f"Player {winner} wins!")
-                break
-            elif is_board_full(board):
-                print_board(board)
-                print("It's a tie!")
-                break
-            
-            current_player = 'O' if current_player == 'X' else 'X'
-        else:
-            print("Invalid move. The cell is already occupied. Try again.")
+        try:
+            row, col = map(int, input("Enter your move (row and column e.g. 0 0): ").split())
+            if 0 <= row < 3 and 0 <= col < 3:
+                return row, col
+            else:
+                print("Invalid move. Please enter values between 0 and 2.")
+        except ValueError:
+            print("Invalid input. Please enter two integers separated by a space.")
 
-play_game()
+# The main game loop
+def tic_tac_toe():
+    board = create_board()
+    current_player = 1  # Player 1 is X, Player -1 is O
+
+    while True:
+        display_board(board)
+        if current_player == 1:
+            row, col = get_user_move()
+        else:
+            row, col = predict_best_move(board, knn)
+            while not is_valid_move(board, row, col):
+                # If the predicted move is invalid, randomly select a valid move
+                empty_cells = list(zip(*np.where(board == 0)))
+                if not empty_cells:
+                    break
+                row, col = empty_cells[0]
+
+        if make_move(board, row, col, current_player):
+            if check_win(board, current_player):
+                display_board(board)
+                print("Player", current_player, "wins!")
+                break
+            if np.all(board != 0):
+                display_board(board)
+                print("It's a draw!")
+                break
+            current_player = -current_player
+        else:
+            print("Invalid move. Try again.")
+
+tic_tac_toe()
