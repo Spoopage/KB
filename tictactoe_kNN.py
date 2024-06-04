@@ -19,23 +19,45 @@ dataset = [
 # Convert dataset to numerical format
 numeric_dataset = [(board_to_numeric(data[0]), data[1]) for data in dataset]
 
+def check_two_in_a_row(board, player):
+    win_conditions = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8],  # Rows
+        [0, 3, 6], [1, 4, 7], [2, 5, 8],  # Columns
+        [0, 4, 8], [2, 4, 6]              # Diagonals
+    ]
+    for condition in win_conditions:
+        values = [board[pos] for pos in condition]
+        if values.count(player) == 2 and values.count('') == 1:
+            return condition[values.index('')]
+    return None
+
 def knn_predict(board, dataset, k=3):
+    # Check for a winning move
+    winning_move = check_two_in_a_row(board, 'O')
+    if winning_move is not None:
+        return winning_move
+
+    # Check for a blocking move
+    blocking_move = check_two_in_a_row(board, 'X')
+    if blocking_move is not None:
+        return blocking_move
+
     numeric_board = board_to_numeric(board)
     # Calculate the distance between the input board and all boards in the dataset
     dists = sorted([(distance.euclidean(numeric_board, data[0]), data[1]) for data in dataset], key=lambda x: x[0])
-    
+
     # Ensure we have at least k neighbors
     if len(dists) < k:
         k = len(dists)
-    
+
     nearest_neighbors = [move for _, move in dists[:k]]
-    
+
     # Filter out moves that are not valid (i.e., those that target already occupied cells)
     valid_moves = [move for move in nearest_neighbors if board[move] == '']
-    
+
     if not valid_moves:
         raise ValueError("No valid moves available for AI.")
-    
+
     # Return the most common move among the valid nearest neighbors
     return Counter(valid_moves).most_common(1)[0][0]
 
@@ -60,10 +82,10 @@ def is_board_full(board):
 def play_game():
     board = [''] * 9
     current_player = 'X'
-    
+
     while True:
         print_board(board)
-        
+
         if current_player == 'X':
             try:
                 move = int(input("Enter your move (0-8): "))
@@ -79,11 +101,11 @@ def play_game():
             except ValueError as e:
                 print(e)
                 break
-        
+
         if board[move] == '':
             board[move] = current_player
             winner = check_winner(board)
-            
+
             if winner:
                 print_board(board)
                 print(f"Player {winner} wins!")
@@ -92,7 +114,7 @@ def play_game():
                 print_board(board)
                 print("It's a tie!")
                 break
-            
+
             current_player = 'O' if current_player == 'X' else 'X'
         else:
             print("Invalid move. The cell is already occupied. Try again.")
