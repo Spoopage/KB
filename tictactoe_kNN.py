@@ -1,6 +1,8 @@
 import numpy as np
 from collections import Counter
 from scipy.spatial import distance
+import tkinter as tk
+from tkinter import messagebox
 
 # Convert board state to a numerical format
 def board_to_numeric(board):
@@ -32,19 +34,24 @@ def check_two_in_a_row(board, player):
     return None
 
 def knn_predict(board, dataset, k=3):
+    print(f"Board state: {board}")
+    
     # Check for a winning move
     winning_move = check_two_in_a_row(board, 'O')
     if winning_move is not None:
+        print(f"AI winning move: {winning_move}")
         return winning_move
 
     # Check for a blocking move
     blocking_move = check_two_in_a_row(board, 'X')
     if blocking_move is not None:
+        print(f"AI blocking move: {blocking_move}")
         return blocking_move
 
     numeric_board = board_to_numeric(board)
     # Calculate the distance between the input board and all boards in the dataset
     dists = sorted([(distance.euclidean(numeric_board, data[0]), data[1]) for data in dataset], key=lambda x: x[0])
+    print(f"Distances: {dists}")
 
     # Ensure we have at least k neighbors
     if len(dists) < k:
@@ -56,14 +63,15 @@ def knn_predict(board, dataset, k=3):
     valid_moves = [move for move in nearest_neighbors if board[move] == '']
 
     if not valid_moves:
-        raise ValueError("No valid moves available for AI.")
+        print("No valid moves found by k-NN. Falling back to the first available move.")
+        valid_moves = [i for i, cell in enumerate(board) if cell == '']
+        if not valid_moves:
+            raise ValueError("No valid moves available for AI.")
+        return valid_moves[0]
 
+    print(f"Valid moves: {valid_moves}")
     # Return the most common move among the valid nearest neighbors
     return Counter(valid_moves).most_common(1)[0][0]
-
-def print_board(board):
-    for i in range(0, 9, 3):
-        print(board[i:i+3])
 
 def check_winner(board):
     win_conditions = [
@@ -79,44 +87,55 @@ def check_winner(board):
 def is_board_full(board):
     return '' not in board
 
-def play_game():
-    board = [''] * 9
-    current_player = 'X'
-
-    while True:
-        print_board(board)
-
-        if current_player == 'X':
-            try:
-                move = int(input("Enter your move (0-8): "))
-                if move < 0 or move > 8:
-                    raise ValueError
-            except ValueError:
-                print("Invalid input. Please enter a number between 0 and 8.")
-                continue
-        else:
+def on_button_click(index):
+    global board, current_player
+    if board[index] == '':
+        board[index] = current_player
+        buttons[index].config(text=current_player, state='disabled')
+        
+        winner = check_winner(board)
+        if winner:
+            messagebox.showinfo("Tic Tac Toe", f"Player {winner} wins!")
+            reset_game()
+            return
+        elif is_board_full(board):
+            messagebox.showinfo("Tic Tac Toe", "It's a tie!")
+            reset_game()
+            return
+        
+        current_player = 'O' if current_player == 'X' else 'X'
+        
+        if current_player == 'O':
             try:
                 move = knn_predict(board, numeric_dataset)
-                print(f"AI chose move {move}")
+                on_button_click(move)
             except ValueError as e:
-                print(e)
-                break
+                messagebox.showinfo("Tic Tac Toe", str(e))
+                reset_game()
 
-        if board[move] == '':
-            board[move] = current_player
-            winner = check_winner(board)
+def reset_game():
+    global board, current_player, buttons
+    board = [''] * 9
+    current_player = 'X'
+    for button in buttons:
+        button.config(text='', state='normal')
 
-            if winner:
-                print_board(board)
-                print(f"Player {winner} wins!")
-                break
-            elif is_board_full(board):
-                print_board(board)
-                print("It's a tie!")
-                break
+def create_gui():
+    global buttons
+    root = tk.Tk()
+    root.title("Tic Tac Toe")
 
-            current_player = 'O' if current_player == 'X' else 'X'
-        else:
-            print("Invalid move. The cell is already occupied. Try again.")
+    buttons = []
+    for i in range(9):
+        button = tk.Button(root, text='', width=10, height=3,
+                           command=lambda i=i: on_button_click(i))
+        button.grid(row=i//3, column=i%3)
+        buttons.append(button)
 
-play_game()
+    root.mainloop()
+
+if __name__ == "__main__":
+    board = [''] * 9
+    current_player = 'X'
+    buttons = []
+    create_gui()
