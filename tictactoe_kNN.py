@@ -15,7 +15,6 @@ dataset = [
     (['O', 'X', 'O', 'X', 'O', 'X', '', '', ''], 6),
     (['X', 'X', 'O', 'O', 'X', '', 'O', '', ''], 5),
     (['X', 'O', 'X', 'O', 'X', 'O', 'X', '', 'O'], 7),
-    # Add more examples for a comprehensive dataset
 ]
 
 # Convert dataset to numerical format
